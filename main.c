@@ -17,6 +17,7 @@
 #include <ctype.h>
 
 #include "debug.h"
+#include "args.h"
 #include "memory.h"
 
 #define N_SUP_TYPES 7
@@ -40,14 +41,31 @@ void verifyFile(char* filePath);
 int main(int argc, char *argv[]) {
     /* Disable warnings */
     (void)argc;
-    //(void)argv;
+    (void)argv;
     
-    char *filePath = argv[1]; //temporary
+    struct gengetopt_args_info args;
 
-    if(canOpenFile(filePath)){
-        verifyFile(filePath);
+	//Initialize gengetopt
+	if(cmdline_parser(argc, argv, &args)){
+        fprintf(stderr, "[ERROR] couldn't initialize the argument parser\n");
+        exit(1);
     }
+
+    if(args.file_given){
+        for(unsigned int i = 0; i<args.file_given; i++){
+            char* filePath = args.file_arg[i];
+            if(canOpenFile(filePath)){
+                verifyFile(filePath);
+            }
+        }
+    }else{
+        printf("./checkFile --help\n");
+    }
+
     
+
+	cmdline_parser_free(&args);
+
     return 0;
 }
 
@@ -111,6 +129,7 @@ char* getFileExt(char* filePath){
     return (ext == NULL ? "" : ext);
 }
 
+//Is the file type supported by checkFile?
 int isTypeSupported(char* shorterType){
     
     char *supportedTypes[N_SUP_TYPES] = {"gif", "html", "jpeg", "mp4", "pdf", "png", "zip"};

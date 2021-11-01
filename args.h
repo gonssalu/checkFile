@@ -21,12 +21,12 @@ extern "C" {
 
 #ifndef CMDLINE_PARSER_PACKAGE
 /** @brief the program name (used for printing errors) */
-#define CMDLINE_PARSER_PACKAGE "Example of .ggo file"
+#define CMDLINE_PARSER_PACKAGE "checkFile .ggo file"
 #endif
 
 #ifndef CMDLINE_PARSER_PACKAGE_NAME
 /** @brief the complete program name (used for help and version) */
-#define CMDLINE_PARSER_PACKAGE_NAME "Example of .ggo file"
+#define CMDLINE_PARSER_PACKAGE_NAME "checkFile .ggo file"
 #endif
 
 #ifndef CMDLINE_PARSER_VERSION
@@ -39,9 +39,23 @@ struct gengetopt_args_info
 {
   const char *help_help; /**< @brief Print help and exit help description.  */
   const char *version_help; /**< @brief Print version and exit help description.  */
+  char ** file_arg;	/**< @brief Checks a file.  */
+  char ** file_orig;	/**< @brief Checks a file original value given at command line.  */
+  unsigned int file_min; /**< @brief Checks a file's minimum occurreces */
+  unsigned int file_max; /**< @brief Checks a file's maximum occurreces */
+  const char *file_help; /**< @brief Checks a file help description.  */
+  char * batch_arg;	/**< @brief Checks every file name inside a batch file.  */
+  char * batch_orig;	/**< @brief Checks every file name inside a batch file original value given at command line.  */
+  const char *batch_help; /**< @brief Checks every file name inside a batch file help description.  */
+  char * dir_arg;	/**< @brief Checks every file in the specified directory.  */
+  char * dir_orig;	/**< @brief Checks every file in the specified directory original value given at command line.  */
+  const char *dir_help; /**< @brief Checks every file in the specified directory help description.  */
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int version_given ;	/**< @brief Whether version was given.  */
+  unsigned int file_given ;	/**< @brief Whether file was given.  */
+  unsigned int batch_given ;	/**< @brief Whether batch was given.  */
+  unsigned int dir_given ;	/**< @brief Whether dir was given.  */
 
 } ;
 

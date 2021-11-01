@@ -1,18 +1,7 @@
-package "Example of .ggo file"
+package "checkFile .ggo file"
 version "1.0"
-purpose "Simple example (optional)"
-description "description needed (optional)"
-versiontext "versiontext needed (optional)"
+purpose "Implementing checkFile's arguments"
 
-#----------------------------
-# independent options
-#----------------------------
-# Mandatory option
-#option "folder" f "folder" string typestr="dirname" required
-
-# Optional
-#option "num" n "number" int optional
-
-#
-# NOTE: support for this file needs to be enabled in 'makefile'
-#
+option "file" f "Checks a file" string typestr="filename" optional multiple
+option "batch" b "Checks every file name inside a batch file" string typestr="filename" optional
+option "dir" d "Checks every file in the specified directory" string typestr="dirname" optional
