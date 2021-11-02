@@ -21,12 +21,12 @@ extern "C" {
 
 #ifndef CMDLINE_PARSER_PACKAGE
 /** @brief the program name (used for printing errors) */
-#define CMDLINE_PARSER_PACKAGE "checkFile .ggo file"
+#define CMDLINE_PARSER_PACKAGE "checkFile"
 #endif
 
 #ifndef CMDLINE_PARSER_PACKAGE_NAME
 /** @brief the complete program name (used for help and version) */
-#define CMDLINE_PARSER_PACKAGE_NAME "checkFile .ggo file"
+#define CMDLINE_PARSER_PACKAGE_NAME "checkFile"
 #endif
 
 #ifndef CMDLINE_PARSER_VERSION

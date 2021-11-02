@@ -25,13 +25,13 @@
 
 #include "args.h"
 
-const char *gengetopt_args_info_purpose = "Implementing checkFile's arguments";
+const char *gengetopt_args_info_purpose = "Verifies if a file's extension corresponds the file type.";
 
-const char *gengetopt_args_info_usage = "Usage: checkFile .ggo file [OPTION]...";
+const char *gengetopt_args_info_usage = "Usage: ./checkFile <OPTION>";
 
-const char *gengetopt_args_info_versiontext = "";
+const char *gengetopt_args_info_versiontext = "checkFile 1.0";
 
-const char *gengetopt_args_info_description = "";
+const char *gengetopt_args_info_description = "Gonçalo Paulino (2201803) & João Ferreira (2201795).\nSupported types: [ PDF, GIF, JPG, PNG, MP4, ZIP, HTML ]\nExample: ./checkFile -f file.txt";
 
 const char *gengetopt_args_info_help[] = {
   "  -h, --help            Print help and exit",

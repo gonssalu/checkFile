@@ -1,6 +1,9 @@
-package "checkFile .ggo file"
+package "checkFile"
 version "1.0"
-purpose "Implementing checkFile's arguments"
+versiontext "checkFile 1.0"
+purpose "Verifies if a file's extension corresponds the file type."
+description "Gonçalo Paulino (2201803) & João Ferreira (2201795).\nSupported types: [ PDF, GIF, JPG, PNG, MP4, ZIP, HTML ]\nExample: ./checkFile -f file.txt"
+usage "./checkFile <OPTION>"
 
 option "file" f "Checks a file" string typestr="filename" optional multiple
 option "batch" b "Checks every file name inside a batch file" string typestr="filename" optional

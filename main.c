@@ -38,10 +38,9 @@ void printResult(char* filePath, char* fileType);
 
 void verifyFile(char* filePath);
 
+void processBatchFile(char* batchFilePath);
+
 int main(int argc, char *argv[]) {
-    /* Disable warnings */
-    (void)argc;
-    (void)argv;
     
     struct gengetopt_args_info args;
 
@@ -51,6 +50,11 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
+    if(argc<2){
+        printf("Try './checkFile --help' for more information.\n");
+        return 0;
+    }
+
     if(args.file_given){
         for(unsigned int i = 0; i<args.file_given; i++){
             char* filePath = args.file_arg[i];
@@ -58,11 +62,14 @@ int main(int argc, char *argv[]) {
                 verifyFile(filePath);
             }
         }
-    }else{
-        printf("./checkFile --help\n");
     }
 
-    
+    if(args.batch_given){
+        char* batchPath = args.batch_arg;
+        if(canOpenFile(batchPath)){
+            processBatchFile(batchPath);
+        }
+    }
 
 	cmdline_parser_free(&args);
 
@@ -93,6 +100,7 @@ int canOpenFile(char* filePath){
 
     return 1;
 }
+
 
 //Read all output file contents
 char* readAllFileContents(FILE* tmpFile){
@@ -185,5 +193,16 @@ void verifyFile(char* filePath){
         printResult(filePath, readAllFileContents(tmpFile)); 
         
         break;
+    }
+}
+
+void processBatchFile(char* batchFilePath){
+    FILE* bf = fopen(batchFilePath, "r" );
+
+    char* line = NULL;
+    size_t len = 0;
+    while(getline(&line, &len, bf)!=-1){
+        line[strcspn(line, "\n")] = 0;
+        verifyFile(line);
     }
 }
