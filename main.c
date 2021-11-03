@@ -71,6 +71,10 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    if(args.dir_given){
+        char* dir = args.dir_arg;
+    }
+
 	cmdline_parser_free(&args);
 
     return 0;
@@ -155,6 +159,12 @@ void printResult(char* filePath, char* fileType){
     //Convert the mime-type to an even shorter type form
     char* shorterType = getStrAfterChar(fileType, '/');
 
+    //Check if it is an empty file
+    if(strcmp(shorterType, "x-empty") == 0){
+        printf("[INFO] '%s': is an empty file\n", filePath);
+        return;
+    }
+
     //Check if the file type is of an unsupported type
     if(!isTypeSupported(shorterType)){
         printf("[INFO] '%s': type '%s' is not supported by checkFile\n", filePath, fileType);
@@ -197,12 +207,17 @@ void verifyFile(char* filePath){
 }
 
 void processBatchFile(char* batchFilePath){
+    printf("[INFO] analyzing files listed in ‘%s’\n", batchFilePath);
     FILE* bf = fopen(batchFilePath, "r" );
 
     char* line = NULL;
     size_t len = 0;
     while(getline(&line, &len, bf)!=-1){
         line[strcspn(line, "\n")] = 0;
-        verifyFile(line);
+        if(strcmp(line,"") != 0){
+            if(canOpenFile(line)){
+                verifyFile(line);
+            }
+        }
     }
 }
