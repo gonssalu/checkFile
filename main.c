@@ -92,13 +92,13 @@ void strToLower(char* str){
 int canOpenFile(char* filePath){
     //Check if the file exists
     if(access(filePath, F_OK)){
-        fprintf(stderr, "[ERROR] cannot open file '%s' -- No such file or directory\n", filePath);
+        fprintf(stderr, "[ERROR] cannot open file '%s' -- %s\n", filePath, strerror(errno));
         return 0;
     }
 
     //Check if the user can read the file
     if(access(filePath, R_OK)){
-        fprintf(stderr, "[ERROR] cannot open file '%s' -- Permission denied\n", filePath);
+        fprintf(stderr, "[ERROR] cannot open file '%s' -- %s\n", filePath, strerror(errno));
         return 0;
     }
 
