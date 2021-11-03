@@ -176,12 +176,14 @@ void printResult(char* filePath, char* fileType){
     //Check if it is an empty file
     if(strcmp(shorterType, "x-empty") == 0){
         printf("[INFO] '%s': is an empty file\n", filePath);
+        free(fileType);
         return;
     }
 
     //Check if the file type is of an unsupported type
     if(!isTypeSupported(shorterType)){
         printf("[INFO] '%s': type '%s' is not supported by checkFile\n", filePath, fileType);
+        free(fileType);
         return;
     }
     char* longExt = fileExt;
@@ -194,6 +196,8 @@ void printResult(char* filePath, char* fileType){
         printf("[OK] '%s': extension '%s' matches file type '%s'\n", filePath, fileExt, shorterType);
     else
         printf("[MISMATCH] '%s': extension is '%s', file type is '%s'\n", filePath, fileExt, shorterType);
+    
+    free(fileType);
 }
 
 //Verify file type
