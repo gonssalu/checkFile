@@ -15,11 +15,13 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <ctype.h>
+#include <dirent.h>
 
 #include "debug.h"
 #include "args.h"
 #include "memory.h"
 
+#define DT_REG 8
 #define N_SUP_TYPES 7
 
 void strToLower(char* str);
@@ -39,6 +41,17 @@ void printResult(char* filePath, char* fileType);
 void verifyFile(char* filePath);
 
 void processBatchFile(char* batchFilePath);
+
+int canOpenDir(char* dirPath, DIR** ptrDir);
+
+void normalizeDirPath(char *dirPath);
+
+void checkAllDirFiles(char* dirPath, DIR* dir);
+
+
+
+void processDirectory(char* dirPath);
+
 
 int main(int argc, char *argv[]) {
     
@@ -73,6 +86,7 @@ int main(int argc, char *argv[]) {
 
     if(args.dir_given){
         char* dir = args.dir_arg;
+        processDirectory(dir);
     }
 
 	cmdline_parser_free(&args);
@@ -113,7 +127,7 @@ char* readAllFileContents(FILE* tmpFile){
     long fsize = ftell(tmpFile)-1; //Don't read the EOF byte
     fseek(tmpFile, 0, SEEK_SET); 
 
-    char *string = malloc(fsize); 
+    char *string = malloc(fsize*sizeof(char)); 
 
     fread(string, 1, fsize, tmpFile);
 
@@ -206,6 +220,7 @@ void verifyFile(char* filePath){
     }
 }
 
+//Read all contents on batch file and check the filenames specified inside
 void processBatchFile(char* batchFilePath){
     printf("[INFO] analyzing files listed in ‘%s’\n", batchFilePath);
     FILE* bf = fopen(batchFilePath, "r" );
@@ -213,11 +228,75 @@ void processBatchFile(char* batchFilePath){
     char* line = NULL;
     size_t len = 0;
     while(getline(&line, &len, bf)!=-1){
-        line[strcspn(line, "\n")] = 0;
-        if(strcmp(line,"") != 0){
+        line[strcspn(line, "\n")] = 0; // Replace the \n with \0 to close the string
+        if(strcmp(line,"") != 0){ //If its an empty line don't continue
             if(canOpenFile(line)){
                 verifyFile(line);
             }
         }
     }
+    fclose(bf);
+}
+
+//Validate if the directory can be opened successfully
+int canOpenDir(char* dirPath, DIR** ptrDir){
+    (*ptrDir) = opendir(dirPath);
+
+    if(*ptrDir == NULL){
+        fprintf(stderr, "[ERROR] cannot open dir '%s' -- %s\n", dirPath, strerror(errno));
+        return 0;
+    }
+
+    return 1;
+}
+
+//Check all files inside a directory
+void checkAllDirFiles(char* dirPath, DIR* dir){
+    errno = 0; //set errno to 0 to know if an error occurred or we got to the end of the directory
+    struct dirent *df;
+    while((df = readdir(dir))!=NULL){
+
+        if(df->d_type!=DT_REG) continue; //if it isn't a regular file, continue to the next record
+
+        char* fileName = df->d_name; //file name
+
+        //join dirPath and fileName together in a separate string
+        char* filePath = malloc((strlen(dirPath)+strlen(fileName)+1)*sizeof(char));
+        strcpy(filePath, dirPath);
+        strcat(filePath, fileName);
+
+        if(canOpenFile(filePath)){
+            verifyFile(filePath);
+        }
+
+        free(filePath);
+    }
+    //If an error occurred display it
+    if(errno!=0)
+        printf("[ERROR] cannot read dir '%s' -- %s \n", dirPath, strerror(errno));
+}
+
+//Returns a formated string that the dirPath ends with a /
+void normalizeDirPath(char *dirPath){
+
+    if(dirPath[strlen(dirPath)-1]!='/')
+        strcat(dirPath, "/");
+
+}
+
+//Process the directory argument
+void processDirectory(char* dirPath){
+    DIR* dir = NULL;
+
+    normalizeDirPath(dirPath);
+
+    //Try to open the directory
+    if(!canOpenDir(dirPath, &dir))
+        return;
+
+    printf("[INFO] analyzing files of directory '%s'\n", dirPath);
+
+    checkAllDirFiles(dirPath, dir);
+
+    closedir(dir);
 }
