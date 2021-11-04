@@ -21,7 +21,6 @@
 #include "args.h"
 #include "memory.h"
 
-#define DT_REG 8
 #define N_SUP_TYPES 7
 
 void strToLower(char* str);
@@ -254,13 +253,19 @@ int canOpenDir(char* dirPath, DIR** ptrDir){
     return 1;
 }
 
+//Check if a path points to a regular file
+int isRegularFile(const char *path)
+{
+    struct stat path_stat;
+    stat(path, &path_stat);
+    return S_ISREG(path_stat.st_mode);
+}
+
 //Check all files inside a directory
 void checkAllDirFiles(char* dirPath, DIR* dir){
     errno = 0; //set errno to 0 to know if an error occurred or we got to the end of the directory
     struct dirent *df;
     while((df = readdir(dir))!=NULL){
-
-        if(df->d_type!=DT_REG) continue; //if it isn't a regular file, continue to the next record
 
         char* fileName = df->d_name; //file name
 
@@ -268,6 +273,8 @@ void checkAllDirFiles(char* dirPath, DIR* dir){
         char* filePath = malloc((strlen(dirPath)+strlen(fileName)+1)*sizeof(char));
         strcpy(filePath, dirPath);
         strcat(filePath, fileName);
+
+        if(!isRegularFile(filePath)) continue; //if it isn't a regular file, continue to the next record
 
         if(canOpenFile(filePath)){
             verifyFile(filePath);
