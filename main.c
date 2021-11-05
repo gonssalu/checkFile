@@ -16,6 +16,8 @@
 #include <fcntl.h>
 #include <ctype.h>
 #include <dirent.h>
+#include <time.h>
+#include <signal.h>
 
 #include "debug.h"
 #include "args.h"
@@ -37,6 +39,8 @@ int isTypeSupported(char* shorterType);
 
 void printResult(char* filePath, char* fileType, int* stats);
 
+int isRegularFile(const char *path);
+
 void verifyFileStats(char* filePath, int* stats);
 
 void verifyFile(char* filePath);
@@ -57,9 +61,27 @@ void checkAllDirFiles(char* dirPath, DIR* dir, int* stats);
 
 void processDirectory(char* dirPath);
 
+void trataQuit(int sig, siginfo_t *info, void *context);
+
+void setupSigQuit();
+
+void trataUsr1(int sig);
+
+void setupSigUsr1();
+
+void saveTime();
+
+//Global vars to share some info with SIGUSR1
+struct tm* _startTime;
+int _nFile;
+char* _filePath;
+
+
 int main(int argc, char *argv[]) {
     
     struct gengetopt_args_info args;
+
+    setupSigQuit();
 
 	//Initialize gengetopt
 	if(cmdline_parser(argc, argv, &args)){
@@ -84,6 +106,8 @@ int main(int argc, char *argv[]) {
 
     //Batch option
     if(args.batch_given){
+        saveTime();
+        setupSigUsr1();
         char* batchPath = args.batch_arg;
         if(canOpenFile(batchPath)){
             processBatchFile(batchPath);
@@ -125,7 +149,6 @@ int canOpenFile(char* filePath){
 
     return 1;
 }
-
 
 //Read all output file contents
 char* readAllFileContents(FILE* tmpFile){
@@ -216,10 +239,23 @@ void printResult(char* filePath, char* fileType, int* stats){
     free(fileType);
 }
 
+//Check if a path points to a regular file
+int isRegularFile(const char *path)
+{
+    struct stat path_stat;
+    stat(path, &path_stat);
+    return S_ISREG(path_stat.st_mode);
+}
+
 //Verify file type
 void verifyFileStats(char* filePath, int* stats){
     FILE* tmpFile = tmpfile(); //Ask the OS to create a new temporary file.
     int fd = fileno(tmpFile);
+
+    if(!isRegularFile(filePath)){
+        fprintf(stderr, "[ERROR] '%s': irregular files are not supported by checkFile\n", filePath);
+        return;
+    }
 
     pid_t pid;
     switch (pid = fork()) {
@@ -278,9 +314,14 @@ void processBatchFile(char* batchFilePath){
 
     char* line = NULL;
     size_t len = 0;
+    _nFile=0;
     while(getline(&line, &len, bf)!=-1){
         line[strcspn(line, "\n")] = 0; // Replace the \n with \0 to close the string
         if(strcmp(line,"") != 0){ //If its an empty line don't continue
+            //update global vars for sigusr1
+            _nFile++;
+            _filePath=line;
+            //check file
             checkFileWithStats(line, stats);
         }
     }
@@ -301,14 +342,6 @@ int canOpenDir(char* dirPath, DIR** ptrDir){
     return 1;
 }
 
-//Check if a path points to a regular file
-int isRegularFile(const char *path)
-{
-    struct stat path_stat;
-    stat(path, &path_stat);
-    return S_ISREG(path_stat.st_mode);
-}
-
 //Check all files inside a directory
 void checkAllDirFiles(char* dirPath, DIR* dir, int* stats){
     errno = 0; //set errno to 0 to know if an error occurred or we got to the end of the directory
@@ -321,8 +354,6 @@ void checkAllDirFiles(char* dirPath, DIR* dir, int* stats){
         char* filePath = malloc((strlen(dirPath)+strlen(fileName)+1)*sizeof(char));
         strcpy(filePath, dirPath);
         strcat(filePath, fileName);
-
-        if(!isRegularFile(filePath)) continue; //if it isn't a regular file, continue to the next record
 
         checkFileWithStats(filePath, stats);        
 
@@ -358,4 +389,71 @@ void processDirectory(char* dirPath){
     closedir(dir);
 
     printStatistics(stats);
+}
+
+//Handles SIGQUIT
+void trataQuit(int sig, siginfo_t *info, void *context) {
+    (void)context; //avoid warnings
+
+    /* Backups global variable errno */
+    int aux;
+    aux = errno;
+
+    if (sig == SIGQUIT) {
+        printf("Captured SIGQUIT signal (sent by PID: %d). Use SIGINT to terminate aplication.\n", info->si_pid);
+    }
+
+    /* Restores errno */
+    errno = aux;
+}
+
+//Sets up the SIGQUIT SIGACTION
+void setupSigQuit(){
+    //Setup Sigquit
+    struct sigaction actQuit;
+    actQuit.sa_sigaction = trataQuit;
+    sigemptyset(&actQuit.sa_mask);
+
+    actQuit.sa_flags = SA_SIGINFO;
+
+    /* Captures signal SIGQUIT */
+    if (sigaction(SIGQUIT, &actQuit, NULL) < 0)
+        ERROR(1, "couldn't execute sigaction for SIQUIT");
+}
+
+//Handles SIGUSR1
+void trataUsr1(int sig) {
+    /* Backups global variable errno */
+    int aux;
+    aux = errno;
+
+    if (sig == SIGUSR1) {
+        char timeStr[50];
+        strftime(timeStr, sizeof(timeStr), "%Y.%m.%d_%Hh%M:%S", _startTime);
+        printf("[SIGUSR1] %s -- nº %d / %s\n", timeStr, _nFile, _filePath);
+    }
+
+    /* Restores errno */
+    errno = aux;
+}
+
+//Sets up the SIGUSR1 SIGACTION
+void setupSigUsr1(){
+    //Setup Sigquit
+    struct sigaction actSig;
+    actSig.sa_handler = trataUsr1;
+    sigemptyset(&actSig.sa_mask);
+
+    actSig.sa_flags = SA_RESTART;
+
+    /* Captures signal SIGQUIT */
+    if (sigaction(SIGUSR1, &actSig, NULL) < 0)
+        ERROR(1, "couldn't execute sigaction for SIGUSR1");
+}
+
+//Save the current time in the global variable
+void saveTime(){
+    time_t s;
+	time(&s);
+	_startTime = localtime(&s);
 }
