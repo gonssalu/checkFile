@@ -148,6 +148,9 @@ char* readAllFileContents(FILE* tmpFile){
 //Get the rest of a string after the last occurance of a char
 char* getStrAfterChar(char* string, char ch){
     char* newStr = strrchr(string, (int)ch);
+    if(newStr == NULL){
+        return "";
+    }
     newStr++; // Exclude the char from the final string
     return newStr;
 }
@@ -184,7 +187,7 @@ void printResult(char* filePath, char* fileType, int* stats){
     if(strcmp(shorterType, "x-empty") == 0){
         printf("[INFO] '%s': is an empty file\n", filePath);
         free(fileType);
-        stats[3]++; //Increments the number of errors
+        if(stats!=NULL) stats[3]++; //Increments the number of errors
         return;
     }
 
@@ -192,7 +195,7 @@ void printResult(char* filePath, char* fileType, int* stats){
     if(!isTypeSupported(shorterType)){
         printf("[INFO] '%s': type '%s' is not supported by checkFile\n", filePath, fileType);
         free(fileType);
-        stats[3]++; //Increments the number of errors
+        if(stats!=NULL) stats[3]++; //Increments the number of errors
         return;
     }
     char* longExt = fileExt;
@@ -203,11 +206,11 @@ void printResult(char* filePath, char* fileType, int* stats){
     //Check if the file type matches the file extension
     if(strcmp(shorterType, longExt)==0){
         printf("[OK] '%s': extension '%s' matches file type '%s'\n", filePath, fileExt, shorterType);
-        stats[1]++; //Increments the number of ok files
+        if(stats!=NULL) stats[1]++; //Increments the number of ok files
     }
     else{
         printf("[MISMATCH] '%s': extension is '%s', file type is '%s'\n", filePath, fileExt, shorterType);
-        stats[2]++; //Increments the number of mismatch files
+        if(stats!=NULL) stats[2]++; //Increments the number of mismatch files
     }
     
     free(fileType);
