@@ -54,9 +54,11 @@ struct gengetopt_args_info
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int version_given ;	/**< @brief Whether version was given.  */
   unsigned int file_given ;	/**< @brief Whether file was given.  */
+  int file_group ; /**< @brief Whether file's was updated.  */
   unsigned int batch_given ;	/**< @brief Whether batch was given.  */
   unsigned int dir_given ;	/**< @brief Whether dir was given.  */
 
+  int grp_group_counter; /**< @brief Counter for group grp */
 } ;
 
 /** @brief The additional parameters to pass to parser functions */

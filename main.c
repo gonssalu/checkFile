@@ -1,7 +1,7 @@
 /**
  * @file main.c
  * @brief Projeto de Programação Avançada
- * @date 2021-11
+ * @date 2021-11-05
  * @author João Ferreira & Gonçalo Paulino
  */
 
@@ -46,8 +46,6 @@ int canOpenDir(char* dirPath, DIR** ptrDir);
 void normalizeDirPath(char *dirPath);
 
 void checkAllDirFiles(char* dirPath, DIR* dir);
-
-
 
 void processDirectory(char* dirPath);
 
@@ -289,10 +287,8 @@ void checkAllDirFiles(char* dirPath, DIR* dir){
 
 //Returns a formated string that the dirPath ends with a /
 void normalizeDirPath(char *dirPath){
-
     if(dirPath[strlen(dirPath)-1]!='/')
         strcat(dirPath, "/");
-
 }
 
 //Process the directory argument

@@ -36,6 +36,7 @@ const char *gengetopt_args_info_description = "Gonçalo Paulino (2201803) & Joã
 const char *gengetopt_args_info_help[] = {
   "  -h, --help            Print help and exit",
   "  -V, --version         Print version and exit",
+  "\n Group: grp\n  Choose one option from these:",
   "  -f, --file=filename   Checks a file",
   "  -b, --batch=filename  Checks every file name inside a batch file",
   "  -d, --dir=dirname     Checks every file in the specified directory",
@@ -66,9 +67,10 @@ void clear_given (struct gengetopt_args_info *args_info)
 {
   args_info->help_given = 0 ;
   args_info->version_given = 0 ;
-  args_info->file_given = 0 ;
+  args_info->file_given = 0 ; args_info->file_group = 0 ;
   args_info->batch_given = 0 ;
   args_info->dir_given = 0 ;
+  args_info->grp_group_counter = 0 ;
 }
 
 static
@@ -91,11 +93,11 @@ void init_args_info(struct gengetopt_args_info *args_info)
 
   args_info->help_help = gengetopt_args_info_help[0] ;
   args_info->version_help = gengetopt_args_info_help[1] ;
-  args_info->file_help = gengetopt_args_info_help[2] ;
+  args_info->file_help = gengetopt_args_info_help[3] ;
   args_info->file_min = 0;
   args_info->file_max = 0;
-  args_info->batch_help = gengetopt_args_info_help[3] ;
-  args_info->dir_help = gengetopt_args_info_help[4] ;
+  args_info->batch_help = gengetopt_args_info_help[4] ;
+  args_info->dir_help = gengetopt_args_info_help[5] ;
   
 }
 
@@ -463,6 +465,24 @@ check_multiple_option_occurrences(const char *prog_name, unsigned int option_giv
     
   return error_occurred;
 }
+static void
+reset_group_grp(struct gengetopt_args_info *args_info)
+{
+  if (! args_info->grp_group_counter)
+    return;
+  
+  args_info->file_given = 0 ; args_info->file_group = 0 ;
+  free_multiple_string_field (args_info->file_given, &(args_info->file_arg), &(args_info->file_orig));
+  args_info->batch_given = 0 ;
+  free_string_field (&(args_info->batch_arg));
+  free_string_field (&(args_info->batch_orig));
+  args_info->dir_given = 0 ;
+  free_string_field (&(args_info->dir_arg));
+  free_string_field (&(args_info->dir_orig));
+
+  args_info->grp_group_counter = 0;
+}
+
 int
 cmdline_parser (int argc, char **argv, struct gengetopt_args_info *args_info)
 {
@@ -837,10 +857,18 @@ cmdline_parser_internal (
               "file", 'f',
               additional_error))
             goto failure;
+          if (!args_info->file_group)
+            {
+              args_info->file_group = 1;
+              args_info->grp_group_counter += 1;
+            }
         
           break;
         case 'b':	/* Checks every file name inside a batch file.  */
         
+          if (args_info->grp_group_counter && override)
+            reset_group_grp (args_info);
+          args_info->grp_group_counter += 1;
         
           if (update_arg( (void *)&(args_info->batch_arg), 
                &(args_info->batch_orig), &(args_info->batch_given),
@@ -853,6 +881,9 @@ cmdline_parser_internal (
           break;
         case 'd':	/* Checks every file in the specified directory.  */
         
+          if (args_info->grp_group_counter && override)
+            reset_group_grp (args_info);
+          args_info->grp_group_counter += 1;
         
           if (update_arg( (void *)&(args_info->dir_arg), 
                &(args_info->dir_orig), &(args_info->dir_given),
@@ -875,6 +906,12 @@ cmdline_parser_internal (
         } /* switch */
     } /* while */
 
+  if (args_info->grp_group_counter > 1)
+    {
+      fprintf (stderr, "%s: %d options of group grp were given. At most one is required%s.\n", argv[0], args_info->grp_group_counter, (additional_error ? additional_error : ""));
+      error_occurred = 1;
+    }
+  
 
   update_multiple_arg((void *)&(args_info->file_arg),
     &(args_info->file_orig), args_info->file_given,

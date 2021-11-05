@@ -5,6 +5,8 @@ purpose "Verifies if a file's extension corresponds the file type."
 description "Gonçalo Paulino (2201803) & João Ferreira (2201795).\nSupported types: [ PDF, GIF, JPG, PNG, MP4, ZIP, HTML ]\nExample: ./checkFile -f file.txt"
 usage "./checkFile <OPTION>"
 
-option "file" f "Checks a file" string typestr="filename" optional multiple
-option "batch" b "Checks every file name inside a batch file" string typestr="filename" optional
-option "dir" d "Checks every file in the specified directory" string typestr="dirname" optional
+defgroup "grp" groupdesc="Choose one option from these:" 
+
+groupoption "file" f "Checks a file" string typestr="filename" multiple group="grp"
+groupoption "batch" b "Checks every file name inside a batch file" string typestr="filename" group="grp"
+groupoption "dir" d "Checks every file in the specified directory" string typestr="dirname" group="grp"
