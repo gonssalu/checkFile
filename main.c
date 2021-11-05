@@ -35,9 +35,17 @@ char* getFileExt(char* filePath);
 
 int isTypeSupported(char* shorterType);
 
-void printResult(char* filePath, char* fileType);
+void printResult(char* filePath, char* fileType, int* stats);
+
+void verifyFileStats(char* filePath, int* stats);
 
 void verifyFile(char* filePath);
+
+int* initializeStatistics();
+
+void printStatistics(int* stats);
+
+void checkFileWithStats(char* filePath, int* stats);
 
 void processBatchFile(char* batchFilePath);
 
@@ -45,10 +53,9 @@ int canOpenDir(char* dirPath, DIR** ptrDir);
 
 void normalizeDirPath(char *dirPath);
 
-void checkAllDirFiles(char* dirPath, DIR* dir);
+void checkAllDirFiles(char* dirPath, DIR* dir, int* stats);
 
 void processDirectory(char* dirPath);
-
 
 int main(int argc, char *argv[]) {
     
@@ -65,6 +72,7 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
+    //File option
     if(args.file_given){
         for(unsigned int i = 0; i<args.file_given; i++){
             char* filePath = args.file_arg[i];
@@ -74,6 +82,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    //Batch option
     if(args.batch_given){
         char* batchPath = args.batch_arg;
         if(canOpenFile(batchPath)){
@@ -81,6 +90,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    //Directory option
     if(args.dir_given){
         char* dir = args.dir_arg;
         processDirectory(dir);
@@ -164,7 +174,7 @@ int isTypeSupported(char* shorterType){
 }
 
 //Process file output
-void printResult(char* filePath, char* fileType){
+void printResult(char* filePath, char* fileType, int* stats){
 
     char* fileExt = getFileExt(filePath);
     //Convert the mime-type to an even shorter type form
@@ -174,6 +184,7 @@ void printResult(char* filePath, char* fileType){
     if(strcmp(shorterType, "x-empty") == 0){
         printf("[INFO] '%s': is an empty file\n", filePath);
         free(fileType);
+        stats[3]++; //Increments the number of errors
         return;
     }
 
@@ -181,6 +192,7 @@ void printResult(char* filePath, char* fileType){
     if(!isTypeSupported(shorterType)){
         printf("[INFO] '%s': type '%s' is not supported by checkFile\n", filePath, fileType);
         free(fileType);
+        stats[3]++; //Increments the number of errors
         return;
     }
     char* longExt = fileExt;
@@ -189,16 +201,20 @@ void printResult(char* filePath, char* fileType){
         longExt = "jpeg";
 
     //Check if the file type matches the file extension
-    if(strcmp(shorterType, longExt)==0)
+    if(strcmp(shorterType, longExt)==0){
         printf("[OK] '%s': extension '%s' matches file type '%s'\n", filePath, fileExt, shorterType);
-    else
+        stats[1]++; //Increments the number of ok files
+    }
+    else{
         printf("[MISMATCH] '%s': extension is '%s', file type is '%s'\n", filePath, fileExt, shorterType);
+        stats[2]++; //Increments the number of mismatch files
+    }
     
     free(fileType);
 }
 
 //Verify file type
-void verifyFile(char* filePath){
+void verifyFileStats(char* filePath, int* stats){
     FILE* tmpFile = tmpfile(); //Ask the OS to create a new temporary file.
     int fd = fileno(tmpFile);
 
@@ -215,14 +231,45 @@ void verifyFile(char* filePath){
     default:
         wait(NULL);
 
-        printResult(filePath, readAllFileContents(tmpFile)); 
+        printResult(filePath, readAllFileContents(tmpFile), stats); 
         
         break;
     }
 }
 
+//Short form of verifyFileStats
+void verifyFile(char* filePath){
+    verifyFileStats(filePath, NULL);
+}
+
+//Initialize the Statistics array for batch/dir options
+int* initializeStatistics(){
+    int* stats = malloc(sizeof(int) * 4);
+    for(int i = 0; i<4; i++)
+        stats[i] = 0;
+    return stats;
+}
+
+//Print out a statistics array
+void printStatistics(int* stats){
+    printf("[SUMMARY] [SUMMARY] files analyzed: %d; files OK: %d; files mismatch: %d; errors: %d\n", stats[0], stats[1], stats[2], stats[3]);
+    free(stats);
+}
+
+//Verifies a file while saving statistics
+void checkFileWithStats(char* filePath, int* stats){
+    stats[0]++; //Increments the number of files analyzed.
+    if(canOpenFile(filePath)){
+            verifyFileStats(filePath, stats);
+        }else
+            stats[3]++; //Increments the number of errors
+}
+
 //Read all contents on batch file and check the filenames specified inside
 void processBatchFile(char* batchFilePath){
+
+    int* stats = initializeStatistics();
+
     printf("[INFO] analyzing files listed in ‘%s’\n", batchFilePath);
     FILE* bf = fopen(batchFilePath, "r" );
 
@@ -231,12 +278,12 @@ void processBatchFile(char* batchFilePath){
     while(getline(&line, &len, bf)!=-1){
         line[strcspn(line, "\n")] = 0; // Replace the \n with \0 to close the string
         if(strcmp(line,"") != 0){ //If its an empty line don't continue
-            if(canOpenFile(line)){
-                verifyFile(line);
-            }
+            checkFileWithStats(line, stats);
         }
     }
     fclose(bf);
+
+    printStatistics(stats);
 }
 
 //Validate if the directory can be opened successfully
@@ -260,7 +307,7 @@ int isRegularFile(const char *path)
 }
 
 //Check all files inside a directory
-void checkAllDirFiles(char* dirPath, DIR* dir){
+void checkAllDirFiles(char* dirPath, DIR* dir, int* stats){
     errno = 0; //set errno to 0 to know if an error occurred or we got to the end of the directory
     struct dirent *df;
     while((df = readdir(dir))!=NULL){
@@ -274,9 +321,7 @@ void checkAllDirFiles(char* dirPath, DIR* dir){
 
         if(!isRegularFile(filePath)) continue; //if it isn't a regular file, continue to the next record
 
-        if(canOpenFile(filePath)){
-            verifyFile(filePath);
-        }
+        checkFileWithStats(filePath, stats);        
 
         free(filePath);
     }
@@ -301,9 +346,13 @@ void processDirectory(char* dirPath){
     if(!canOpenDir(dirPath, &dir))
         return;
 
+    int* stats = initializeStatistics();
+
     printf("[INFO] analyzing files of directory '%s'\n", dirPath);
 
-    checkAllDirFiles(dirPath, dir);
+    checkAllDirFiles(dirPath, dir, stats);
 
     closedir(dir);
+
+    printStatistics(stats);
 }
