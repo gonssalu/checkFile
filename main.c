@@ -185,7 +185,7 @@ char* getFileExt(char* filePath){
     //Convert string to lower case
     strToLower(ext);
 
-    return (ext == NULL ? "" : ext);
+    return ext;
 }
 
 //Is the file type supported by checkFile?
